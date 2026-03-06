@@ -1,0 +1,28 @@
+{
+    npm init -y -> to initialise the empty node js project
+}
+
+{
+  "name": "nodejsbasics", // name of your website/app/library
+  "version": "1.0.0", // current version of your project
+  "description": "",
+  "main": "index.js", // Entry point
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    {important -->>} "start" : "node index.js " ----->>>>> // when developers run the start it runs node index.js
+  },
+  "keywords": [], -> metadata
+  "author": "",    -> metadata
+  "license": "ISC",  -> metadata
+  "type": "commonjs"  -> metadata
+}
+
+{
+    npm -> node package manager 
+    it is suppose to manage external dependencies 
+    help to install external libraries
+    help to 
+}
+{
+    dependencies ->  i want to use that library so i have to use 
+}
