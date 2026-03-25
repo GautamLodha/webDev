@@ -39,12 +39,12 @@
   </div>
 
   <script>
-    async function addNote() {
+    async function addNote(){
         const input = document.getElementById("noteInput")
         const text = input.value.trim();
         if(text === "")return;
-        await axios.post('http://localhost:3000/notes',{
-            note : text
+        const response = await axios.post('http://localhost:3000/notes',{
+          note : text
         },{
           headers : {
             token : localStorage.getItem('token')
@@ -53,21 +53,28 @@
         input.value = ""
         getNotes()
     }
+
+
     async function getNotes(){
-        const res = await axios.get('http://localhost:3000/notes',{
+      try {
+        const response = await axios.get('http://localhost:3000/notes',{
           headers : {
             token : localStorage.getItem('token')
           }
         })
-        const notes = res.data.note
+        const notes = response.data.note
         const container = document.getElementById("notesContainer");
-        container.innerText = "";
+        container.innerText = ""
         for(let i=0;i<notes.length;i++){
-            const div = document.createElement("div")
-            div.className = "p-3 bg-gray-200 rounded";
-            div.innerText = notes[i].note;
-            container.appendChild(div)
+          const div = document.createElement('div')
+          div.className = "p-3 bg-gray-200 rounded";
+          div.innerText = notes[i].note;
+          container.appendChild(div)
         }
+      } catch (error) {
+        console.log(error);
+        
+      }
     }
     getNotes()
   </script>

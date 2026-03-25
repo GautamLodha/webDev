@@ -1,23 +1,19 @@
 const jwt = require('jsonwebtoken')
-
 function authMiddleware(req,res,next){
-    // console.log(req.headers);
-    const token = req.headers.token;
+    const token  = req.headers.token
     if(!token){
         return res.status(400).json({
-            message : "you are not authenticated for this"
+            message : "You are not authenticated"
         })
     }
-    const decoded = jwt.verify(token,"gautam123")
     try {
-            const decoded = jwt.verify(token,"gautam123");
-            req.username = decoded.username;
-            next();
-    } catch (err) {
-        return res.status(403).json({
-            message : "Invalid token"
+        const decoded = jwt.verify(token,"secret")
+        req.username = decoded.username
+        next()
+    } catch (error) {
+        return res.status(400).json({
+            message : "Something went wrong"
         })
     }
 }
-
 module.exports = {authMiddleware}
