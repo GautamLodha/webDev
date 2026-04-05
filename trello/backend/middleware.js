@@ -7,8 +7,11 @@ function authMiddleware(req,res,next){
         })
     }
     try {
-        const decoded = jwt.verify(token,"8q7&^g0r980h!@#");
+        const decoded = jwt.verify(token,process.env.JWT_SECRET);
+        console.log("decoded", decoded);
+        
         const userId = decoded.userId;
+        console.log("middleware.js", userId);
         req.userId = userId
         next();
     } catch (error) {

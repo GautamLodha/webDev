@@ -1,6 +1,15 @@
 const express = require('express')
+const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose')
 const { authMiddleware } = require('./middleware');
+const { userModel } = require('./models/users.model');
+const { orgModel } = require('./models/organization.model');
+require('dotenv').config()
+
+mongoose.connect(process.env.MONGO_URL)
+.then(()=>console.log("db connection successful "))
+.catch(()=>console.log("error while connectin db"))
 
 let USERS_ID = 1;
 let ORGANISATIONS_ID = 1;
@@ -13,86 +22,117 @@ const BOARDS = [];
 const ISSUES = [];
 
 const app = express()
-
 app.use(express.json());
 
-app.post("/signup", (req, res) => {
-    const username = req.body.username;
-    const password = req.body.password;
 
-    const user = USERS.find(u=>u.username === username);
-    if(user){
-        return res.status(411).json({
-            message : "user with this name already exist"
+app.post("/signup",async (req, res) => {
+
+
+    try {
+        const username = req.body.username;
+        const password = req.body.password;
+
+        console.log(username,password);
+        
+
+        const user = await userModel.findOne({username})
+        console.log(user);
+        
+        if(user){
+            return res.status(411).json({
+                message : "user with this name already exist"
+            })
+        }
+        const response = await userModel.create({
+            username : username,
+            password : password
         })
+        console.log("response",response);
+        
+        res.json({
+            id : response._id,
+            message : "you have signup  successfully"
+        })
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({ message: "Server error" });
     }
-    USERS.push({
-        username : username,
-        password : password,
-        id : USERS_ID++
-    })
-    res.json({
-        message : "you have signed in successfully"
-    })
+
+    
 
 })
 
-app.post("/signin", (req, res) => {
+app.post("/signin", async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
-
-    const user = USERS.find(u=>u.username === username && u.password === password);
+    const user = await userModel.findOne({username})
     if(!user){
         return res.status(403).json({
             message : "Invalid credentials"
         })
     }
+    const isMatch = await bcrypt.compare(password.toString(),user.password)
+    if(!isMatch){
+        return res.status(400).json({message : "Invalid credentials"})
+    }
     const token = jwt.sign({
-        userId : user.id
-    },"8q7&^g0r980h!@#")
+        userId : user._id
+    },process.env.JWT_SECRET)
     res.json({
         token : token
     })
 })
 
-// AUTHENTICATED ROUTE - MIDDLEWARE 
-app.post("/organization", authMiddleware , (req, res) => {
+
+app.post("/organization", authMiddleware , async (req, res) => {
     const userId = req.userId;
+    console.log(userId);
+    
     const title = req.body.title;
     const description = req.body.description;
-    ORGANIZATIONS.push({
-        id : ORGANISATIONS_ID++,
-        title : title,
-        description : description,
+    
+
+    const org = await orgModel.create({
+        title,description,
         admin : userId,
         members : []
     })
+
+    console.log(org.admin);
+    
+
     return res.status(200).json({
         message : "org created",
-        id : ORGANISATIONS_ID - 1
+        id : org._id
     })
 })
 
-app.post("/add-member-to-organization", authMiddleware,(req, res) => {
+app.post("/add-member-to-organization", authMiddleware,async (req, res) => {
     const userId = req.userId;
     const organizationId = req.body.organizationId;
     const memberUserName = req.body.memberUserName;
     
-    const organization = ORGANIZATIONS.find(o=>o.id === organizationId);
-    console.log(organizationId,memberUserName,ORGANIZATIONS,userId,organization);
+    const org = await orgModel.findById(organizationId)
+
+    console.log("asdfa ",org);
     
-    if(!organization || organization.admin != userId){
+    
+    if(!org || org.admin.toString() != userId){
         return res.status(411).json({
             message: "Either this org doesnt exist or you are not an admin of this org"
         })   
     }
-    const memberUser = USERS.find(u => u.username === memberUserName);
-    if(!memberUser){
+    const member = await userModel.findOne({username : memberUserName})
+    if(!member){
         return res.status(411).json({
             message: "No user with this userId exists in our db"
         })
     }
-    organization.members.push(memberUser.id)
+    console.log("before",org);
+    
+    org.members.push(member._id)
+    await org.save()
+    console.log("after",org);
     res.json({
         message: "New member added!"
     })
@@ -163,5 +203,5 @@ app.delete("/members", authMiddleware , (req, res) => {
     });
 })
 
-app.listen(3000);
+app.listen(3000,()=>console.log("server is running"));
 
