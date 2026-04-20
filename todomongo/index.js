@@ -1,4 +1,6 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
+const z = require('zod')
 require('dotenv').config()
 const jwt = require('jsonwebtoken')
 const { authMiddleware } = require('./middleware');
@@ -6,14 +8,27 @@ const { userModel, todoModel } = require('./models');
 const app = express()
 app.use(express.json());
 
+const signupSchema = z.object({
+    username : z.string().min(5),
+    password : z.string().min(6)
+})
+
 app.post('/signin',async (req,res,next)=>{
 
     try {
         const username = req.body.username;
         const password = req.body.password;
-
-        let user = await userModel.findOne({username,password})
+        // console.log(username,password);
+        
+        let user = await userModel.findOne({username})
         if(!user){
+            return res.status(401).json({
+                message : "wrong credentials"
+            })
+        }
+        console.log(user.password);
+        const compare = await bcrypt.compare(password,user.password);
+        if(!compare){
             return res.status(401).json({
                 message : "wrong credentials"
             })
@@ -36,15 +51,23 @@ app.post('/signup',async (req,res,next)=>{
         const username = req.body.username;
         const password = req.body.password;
 
+        const {success,error,data} = signupSchema.safeParse(req.body);
+        if(!success){
+            return res.status(400).json({
+                error : error.flatten().fieldErrors
+            })
+        }
+
         let user = await userModel.findOne({username})
         if(user){
             return res.status(409).json({
                 message : "you already exist"
             })
         }
+        const hashedPassword = await bcrypt.hash(password,10);
         user =  await userModel.create({
             username,
-            password
+            password : hashedPassword
         })
         return res.status(200).json({
             message : "user created successfully",
